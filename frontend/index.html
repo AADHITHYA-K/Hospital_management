@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MedFlow — Inter-Department Workflow</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&family=Exo+2:ital,wght@0,300;0,400;0,500;0,600;1,300&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-deep:     #020c12;
+      --bg-mid:      #041520;
+      --bg-panel:    #061c2a;
+      --bg-card:     rgba(8,35,55,0.9);
+      --cyan:        #00e5ff;
+      --cyan-dim:    #00b8d4;
+      --cyan-glow:   rgba(0,229,255,0.15);
+      --cyan-glow2:  rgba(0,229,255,0.06);
+      --teal:        #1de9b6;
+      --red-alert:   #ff1744;
+      --red-dim:     #ff5252;
+      --amber:       #ffab00;
+      --green-vital: #00e676;
+      --blue-info:   #448aff;
+      --border:      rgba(0,229,255,0.12);
+      --border-mid:  rgba(0,229,255,0.25);
+      --border-hi:   rgba(0,229,255,0.5);
+      --text-hi:     #e8f8ff;
+      --text-mid:    #8ecad8;
+      --text-lo:     #3d7a8a;
+      --font-head:   'Oswald', sans-serif;
+      --font-body:   'Exo 2', sans-serif;
+      --font-mono:   'Share Tech Mono', monospace;
+      --header-h:    62px;
+      --r: 4px; --r-lg: 8px;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg-deep);
+      color: var(--text-hi);
+      font-family: var(--font-body);
+      font-size: 14px;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0;
+      background-image:
+        linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px);
+      background-size: 48px 48px;
+      animation: gridShift 20s linear infinite;
+      pointer-events: none;
+    }
+
+    @keyframes gridShift {
+      0%   { background-position: 0 0; }
+      100% { background-position: 48px 48px; }
+    }
+
+    body::after {
+      content: '';
+      position: fixed; inset: 0; z-index: 0;
+      background:
+        radial-gradient(ellipse 800px 600px at 10% 20%, rgba(0,229,255,0.05) 0%, transparent 60%),
+        radial-gradient(ellipse 600px 400px at 90% 80%, rgba(29,233,182,0.04) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    #app { position: relative; z-index: 1; }
+
+    /* ── HEADER ─── */
+    .header {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+      height: var(--header-h);
+      display: flex; align-items: center;
+      background: rgba(2,12,18,0.92);
+      backdrop-filter: blur(20px) saturate(180%);
+      border-bottom: 1px solid var(--border);
+      box-shadow: 0 0 40px rgba(0,229,255,0.05), 0 1px 0 rgba(0,229,255,0.1);
+    }
+
+    .header::after {
+      content: '';
+      position: absolute; bottom: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, transparent 0%, var(--cyan) 20%, var(--teal) 50%, var(--cyan) 80%, transparent 100%);
+      opacity: 0.4;
+      animation: scanLine 3s ease-in-out infinite;
+    }
+
+    @keyframes scanLine {
+      0%, 100% { opacity: 0.2; }
+      50% { opacity: 0.7; }
+    }
+
+    .brand {
+      display: flex; align-items: center; gap: 12px;
+      padding: 0 28px; height: 100%;
+      border-right: 1px solid var(--border);
+      text-decoration: none; white-space: nowrap;
+    }
+
+    .brand-pulse {
+      position: relative; width: 10px; height: 10px;
+    }
+    .brand-pulse::before, .brand-pulse::after {
+      content: ''; position: absolute; inset: 0;
+      border-radius: 50%; background: var(--cyan);
+    }
+    .brand-pulse::after { animation: pulse-ring 1.5s ease-out infinite; }
+
+    @keyframes pulse-ring {
+      0%   { transform: scale(1); opacity: 1; }
+      100% { transform: scale(3); opacity: 0; }
+    }
+
+    .brand-text {
+      font-family: var(--font-head); font-size: 20px; font-weight: 700;
+      letter-spacing: .15em; text-transform: uppercase; color: var(--cyan);
+      text-shadow: 0 0 20px rgba(0,229,255,0.5);
+    }
+
+    .brand-sub {
+      font-family: var(--font-mono); font-size: 9px; letter-spacing: .2em;
+      color: var(--text-lo); text-transform: uppercase; line-height: 1; margin-top: 2px;
+    }
+
+    .nav { display: flex; align-items: center; height: 100%; flex: 1; padding: 0 8px; }
+
+    .nav a {
+      position: relative; display: flex; align-items: center;
+      height: 100%; padding: 0 20px;
+      font-family: var(--font-head); font-size: 13px; font-weight: 500;
+      letter-spacing: .14em; text-transform: uppercase;
+      color: var(--text-lo); text-decoration: none; transition: color .2s; overflow: hidden;
+    }
+
+    .nav a::before {
+      content: ''; position: absolute; bottom: 0; left: 50%; right: 50%; height: 2px;
+      background: var(--cyan); box-shadow: 0 0 8px var(--cyan);
+      transition: left .25s ease, right .25s ease;
+    }
+
+    .nav a::after {
+      content: ''; position: absolute; inset: 0;
+      background: var(--cyan-glow2); opacity: 0; transition: opacity .2s;
+    }
+
+    .nav a:hover { color: var(--cyan); }
+    .nav a:hover::before { left: 0; right: 0; }
+    .nav a:hover::after { opacity: 1; }
+    .nav a.active { color: var(--cyan); }
+    .nav a.active::before { left: 0; right: 0; }
+
+    .user {
+      display: flex; align-items: center; gap: 10px;
+      padding: 0 20px; border-left: 1px solid var(--border); height: 100%;
+    }
+
+    #user-email { font-family: var(--font-mono); font-size: 11px; color: var(--text-mid); letter-spacing: .05em; }
+
+    .role-badge {
+      padding: 3px 10px; font-family: var(--font-head); font-size: 10px;
+      letter-spacing: .12em; text-transform: uppercase; border-radius: 2px;
+      background: rgba(0,229,255,0.1); color: var(--cyan); border: 1px solid rgba(0,229,255,0.3);
+    }
+
+    .dept-badge {
+      padding: 3px 10px; font-family: var(--font-head); font-size: 10px;
+      letter-spacing: .1em; text-transform: uppercase; border-radius: 2px;
+      background: rgba(29,233,182,0.1); color: var(--teal); border: 1px solid rgba(29,233,182,0.3);
+    }
+
+    /* ── LAYOUT ─── */
+    .main { padding-top: var(--header-h); min-height: 100vh; }
+
+    .page {
+      padding: 40px 44px; max-width: 1400px; margin: 0 auto;
+      animation: pageIn .35s cubic-bezier(.22,.68,0,1.2) both;
+    }
+
+    @keyframes pageIn {
+      from { opacity: 0; transform: translateY(12px) scale(.99); }
+      to   { opacity: 1; transform: none; }
+    }
+
+    /* ── PAGE HEADINGS ─── */
+    .page-header {
+      display: flex; align-items: flex-end; justify-content: space-between;
+      margin-bottom: 32px; padding-bottom: 20px; border-bottom: 1px solid var(--border);
+    }
+
+    h2 {
+      font-family: var(--font-head); font-size: 32px; font-weight: 700;
+      letter-spacing: .1em; text-transform: uppercase; color: var(--text-hi);
+      line-height: 1; display: flex; align-items: center; gap: 14px;
+    }
+
+    h2 .h2-accent {
+      font-size: 11px; font-family: var(--font-mono); color: var(--cyan);
+      letter-spacing: .2em; display: block; margin-top: 6px;
+      text-shadow: 0 0 10px var(--cyan);
+    }
+
+    h2 .h2-bar {
+      width: 4px; height: 40px;
+      background: linear-gradient(180deg, var(--cyan), var(--teal));
+      border-radius: 2px; box-shadow: 0 0 12px var(--cyan); flex-shrink: 0;
+    }
+
+    h3 {
+      font-family: var(--font-head); font-size: 17px; font-weight: 600;
+      letter-spacing: .1em; text-transform: uppercase; color: var(--text-hi); margin-bottom: 20px;
+    }
+
+    /* ── LOGIN ─── */
+    #page-login {
+      display: flex; align-items: center; justify-content: center;
+      min-height: 100vh; padding: 24px;
+    }
+
+    .login-wrap {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 0;
+      width: 100%; max-width: 900px;
+      border: 1px solid var(--border-mid); border-radius: var(--r-lg); overflow: hidden;
+      box-shadow: 0 0 80px rgba(0,229,255,0.1), 0 0 160px rgba(0,229,255,0.05);
+      animation: pageIn .5s cubic-bezier(.22,.68,0,1.2) both;
+    }
+
+    .login-brand {
+      background: linear-gradient(135deg, #020f1a 0%, #041a28 50%, #031220 100%);
+      padding: 60px 44px; display: flex; flex-direction: column; justify-content: space-between;
+      position: relative; overflow: hidden; border-right: 1px solid var(--border);
+    }
+
+    .login-brand::before {
+      content: ''; position: absolute; inset: 0;
+      background:
+        radial-gradient(circle 300px at 30% 40%, rgba(0,229,255,0.08), transparent),
+        radial-gradient(circle 200px at 80% 80%, rgba(29,233,182,0.06), transparent);
+    }
+
+    .ecg-line {
+      position: absolute; bottom: 80px; left: 0; right: 0; height: 60px; overflow: hidden; opacity: 0.4;
+    }
+
+    .ecg-line svg { animation: ecgScroll 3s linear infinite; width: 200%; height: 100%; }
+
+    @keyframes ecgScroll {
+      0%   { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+
+    .login-brand-title { position: relative; z-index: 1; }
+
+    .big-plus {
+      font-size: 64px; line-height: 1; color: var(--cyan);
+      text-shadow: 0 0 40px rgba(0,229,255,0.6); font-family: var(--font-head); font-weight: 300;
+      margin-bottom: 20px; animation: glowPulse 2s ease-in-out infinite;
+    }
+
+    @keyframes glowPulse {
+      0%, 100% { text-shadow: 0 0 20px rgba(0,229,255,0.4); }
+      50% { text-shadow: 0 0 60px rgba(0,229,255,0.8), 0 0 100px rgba(0,229,255,0.3); }
+    }
+
+    .login-brand-title h1 {
+      font-family: var(--font-head); font-size: 36px; font-weight: 700;
+      letter-spacing: .12em; text-transform: uppercase; color: var(--text-hi);
+      line-height: 1.1; margin-bottom: 12px;
+    }
+
+    .login-brand-title p {
+      font-family: var(--font-mono); font-size: 12px; color: var(--cyan); letter-spacing: .2em; text-transform: uppercase;
+    }
+
+    .login-stats { position: relative; z-index: 1; display: flex; gap: 24px; }
+
+    .login-stat { border-top: 1px solid var(--border-mid); padding-top: 12px; }
+
+    .login-stat .num {
+      font-family: var(--font-mono); font-size: 22px; color: var(--cyan); text-shadow: 0 0 10px rgba(0,229,255,0.5);
+    }
+
+    .login-stat .lbl { font-size: 10px; letter-spacing: .1em; color: var(--text-lo); text-transform: uppercase; margin-top: 2px; }
+
+    .login-form-panel { background: var(--bg-panel); padding: 52px 44px; }
+
+    .form-title {
+      font-family: var(--font-head); font-size: 22px; font-weight: 600;
+      letter-spacing: .1em; text-transform: uppercase; color: var(--text-hi); margin-bottom: 6px;
+    }
+
+    .form-sub {
+      font-family: var(--font-mono); font-size: 11px; color: var(--text-lo);
+      letter-spacing: .1em; text-transform: uppercase; margin-bottom: 28px;
+    }
+
+    .tabs {
+      display: flex; margin-bottom: 28px; gap: 2px;
+      background: rgba(0,229,255,0.04); border: 1px solid var(--border); border-radius: var(--r); padding: 3px;
+    }
+
+    .tab {
+      flex: 1; padding: 9px; font-family: var(--font-head); font-size: 12px;
+      letter-spacing: .14em; text-transform: uppercase; background: transparent;
+      color: var(--text-lo); border: none; border-radius: 3px; cursor: pointer; transition: all .2s;
+    }
+
+    .tab.active {
+      background: linear-gradient(135deg, rgba(0,229,255,0.2), rgba(29,233,182,0.15));
+      color: var(--cyan); box-shadow: 0 0 12px rgba(0,229,255,0.15); border: 1px solid rgba(0,229,255,0.3);
+    }
+
+    .tab:hover:not(.active) { color: var(--text-mid); background: rgba(0,229,255,0.04); }
+
+    /* ── FORMS ─── */
+    .form { display: flex; flex-direction: column; gap: 14px; }
+
+    .form label {
+      font-family: var(--font-head); font-size: 11px; letter-spacing: .15em;
+      text-transform: uppercase; color: var(--text-lo); margin-bottom: -6px; display: block;
+    }
+
+    .field-wrap { position: relative; }
+    .field-wrap input, .field-wrap select { padding-left: 40px; }
+    .field-icon {
+      position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+      font-family: var(--font-mono); font-size: 12px; color: var(--text-lo); pointer-events: none;
+    }
+
+    input, select, textarea {
+      width: 100%; padding: 11px 16px;
+      background: rgba(0,229,255,0.03); border: 1px solid var(--border); border-radius: var(--r);
+      color: var(--text-hi); font-family: var(--font-body); font-size: 14px; outline: none;
+      transition: border-color .2s, box-shadow .2s, background .2s;
+    }
+
+    input:focus, select:focus {
+      border-color: var(--cyan); background: rgba(0,229,255,0.06);
+      box-shadow: 0 0 0 3px rgba(0,229,255,0.1), 0 0 20px rgba(0,229,255,0.08);
+    }
+
+    input::placeholder { color: var(--text-lo); font-family: var(--font-mono); font-size: 12px; }
+    select { cursor: pointer; }
+    select option { background: var(--bg-panel); color: var(--text-hi); }
+
+    /* ── BUTTONS ─── */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 11px 24px; font-family: var(--font-head); font-size: 13px; font-weight: 500;
+      letter-spacing: .14em; text-transform: uppercase; border: 1px solid transparent;
+      border-radius: var(--r); cursor: pointer; transition: all .2s; white-space: nowrap;
+      text-decoration: none; position: relative; overflow: hidden;
+    }
+
+    .btn::after {
+      content: ''; position: absolute; inset: 0; background: rgba(255,255,255,0.08); opacity: 0; transition: opacity .2s;
+    }
+
+    .btn:hover::after { opacity: 1; }
+
+    .btn-primary {
+      background: linear-gradient(135deg, rgba(0,229,255,0.25) 0%, rgba(29,233,182,0.2) 100%);
+      border-color: var(--cyan); color: var(--cyan);
+      box-shadow: 0 0 20px rgba(0,229,255,0.15), inset 0 1px 0 rgba(255,255,255,0.05);
+      text-shadow: 0 0 10px rgba(0,229,255,0.4);
+    }
+
+    .btn-primary:hover {
+      background: linear-gradient(135deg, rgba(0,229,255,0.4) 0%, rgba(29,233,182,0.3) 100%);
+      box-shadow: 0 0 30px rgba(0,229,255,0.3), 0 0 60px rgba(0,229,255,0.1);
+      transform: translateY(-1px);
+    }
+
+    .btn-ghost { background: transparent; color: var(--text-mid); border-color: var(--border); }
+    .btn-ghost:hover { border-color: var(--border-mid); color: var(--text-hi); }
+    .btn-sm { padding: 7px 16px; font-size: 11px; }
+
+    /* ── DASHBOARD CARDS ─── */
+    .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 18px; }
+
+    .card {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--r-lg);
+      padding: 32px 28px; text-decoration: none; color: inherit; position: relative; overflow: hidden;
+      transition: border-color .25s, transform .25s, box-shadow .25s; backdrop-filter: blur(12px); display: block;
+    }
+
+    .card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--cyan), transparent); opacity: 0; transition: opacity .25s;
+    }
+
+    .card::after {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(circle at 50% 0%, rgba(0,229,255,0.06), transparent 70%); opacity: 0; transition: opacity .3s;
+    }
+
+    .card:hover {
+      border-color: var(--border-hi); transform: translateY(-4px) scale(1.01);
+      box-shadow: 0 16px 48px rgba(0,229,255,0.1), 0 0 0 1px rgba(0,229,255,0.15);
+    }
+
+    .card:hover::before { opacity: 1; }
+    .card:hover::after { opacity: 1; }
+
+    .card-icon {
+      width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;
+      background: var(--cyan-glow); border: 1px solid rgba(0,229,255,0.25); border-radius: var(--r);
+      margin-bottom: 20px; font-family: var(--font-head); font-size: 20px; font-weight: 700;
+      color: var(--cyan); text-shadow: 0 0 10px var(--cyan); position: relative; z-index: 1;
+    }
+
+    .card h3 {
+      font-family: var(--font-head); font-size: 17px; font-weight: 700;
+      letter-spacing: .12em; text-transform: uppercase; color: var(--text-hi);
+      margin-bottom: 8px; position: relative; z-index: 1;
+    }
+
+    .card p { font-size: 13px; color: var(--text-mid); line-height: 1.5; position: relative; z-index: 1; }
+
+    .card-num {
+      position: absolute; bottom: 20px; right: 20px;
+      font-family: var(--font-mono); font-size: 42px; color: rgba(0,229,255,0.05); line-height: 1; z-index: 0;
+      transition: color .25s;
+    }
+
+    .card:hover .card-num { color: rgba(0,229,255,0.09); }
+
+    /* ── TOOLBAR ─── */
+    .toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+
+    /* ── TABLES ─── */
+    .table-wrap {
+      border: 1px solid var(--border); border-radius: var(--r-lg); overflow: hidden;
+      box-shadow: 0 0 40px rgba(0,229,255,0.04);
+    }
+
+    .table { width: 100%; border-collapse: collapse; font-size: 13px; }
+
+    .table thead { background: linear-gradient(180deg, rgba(0,229,255,0.06), rgba(0,229,255,0.02)); }
+
+    .table th {
+      padding: 13px 18px; font-family: var(--font-head); font-size: 10px; font-weight: 600;
+      letter-spacing: .18em; text-transform: uppercase; color: var(--cyan);
+      text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap;
+    }
+
+    .table td {
+      padding: 13px 18px; border-bottom: 1px solid rgba(0,229,255,0.05);
+      color: var(--text-hi); vertical-align: middle; transition: background .15s;
+    }
+
+    .table tbody tr { transition: background .15s; }
+    .table tbody tr:last-child td { border-bottom: none; }
+    .table tbody tr:hover td { background: rgba(0,229,255,0.04); }
+    .table td.mono { font-family: var(--font-mono); font-size: 12px; color: var(--cyan); }
+
+    /* ── BADGES ─── */
+    .badge {
+      display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px;
+      font-family: var(--font-head); font-size: 10px; letter-spacing: .1em; text-transform: uppercase;
+      border-radius: 2px; font-weight: 500;
+    }
+
+    .badge::before { content: ''; width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+
+    .badge-success { background: rgba(0,230,118,.1); color: var(--green-vital); border: 1px solid rgba(0,230,118,.25); }
+    .badge-success::before { background: var(--green-vital); box-shadow: 0 0 4px var(--green-vital); animation: dot-blink 1.5s infinite; }
+    .badge-warning { background: rgba(255,171,0,.1); color: var(--amber); border: 1px solid rgba(255,171,0,.25); }
+    .badge-warning::before { background: var(--amber); }
+    .badge-danger { background: rgba(255,23,68,.1); color: var(--red-dim); border: 1px solid rgba(255,23,68,.25); }
+    .badge-danger::before { background: var(--red-dim); box-shadow: 0 0 4px var(--red-dim); animation: dot-blink 0.8s infinite; }
+    .badge-info { background: rgba(68,138,255,.1); color: var(--blue-info); border: 1px solid rgba(68,138,255,.25); }
+    .badge-info::before { background: var(--blue-info); }
+    .badge-default { background: rgba(0,229,255,.06); color: var(--text-mid); border: 1px solid var(--border); }
+    .badge-default::before { background: var(--text-lo); }
+
+    @keyframes dot-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
+
+    /* ── MODAL ─── */
+    .modal {
+      display: none; position: fixed; inset: 0; z-index: 300;
+      background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); align-items: center; justify-content: center;
+    }
+
+    .modal.open { display: flex; }
+
+    .modal-content {
+      background: var(--bg-panel); border: 1px solid var(--border-mid); border-top: 2px solid var(--cyan);
+      border-radius: var(--r-lg); padding: 36px 40px; width: 100%; max-width: 500px;
+      box-shadow: 0 0 80px rgba(0,229,255,0.12), 0 32px 64px rgba(0,0,0,0.6);
+      animation: modalIn .25s cubic-bezier(.22,.68,0,1.2); position: relative; overflow: hidden;
+    }
+
+    .modal-content::before {
+      content: ''; position: absolute; top: 0; left: 20%; right: 20%; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(0,229,255,0.5), transparent);
+    }
+
+    @keyframes modalIn {
+      from { opacity: 0; transform: scale(.95) translateY(-10px); }
+      to   { opacity: 1; transform: none; }
+    }
+
+    /* ── DETAIL PANEL ─── */
+    .detail-panel {
+      margin-top: 24px; background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--r-lg); padding: 32px; backdrop-filter: blur(12px);
+      box-shadow: 0 0 40px rgba(0,229,255,0.05);
+    }
+
+    .detail-panel h3 { margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+
+    /* ── WORKFLOW CARDS ─── */
+    #workflows-content { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 18px; }
+
+    .workflow-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 24px; backdrop-filter: blur(8px); }
+    .workflow-card:hover { border-color: var(--border-mid); }
+
+    .workflow-card h4 {
+      font-family: var(--font-head); font-size: 14px; font-weight: 600;
+      letter-spacing: .1em; text-transform: uppercase; color: var(--cyan);
+      margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 8px;
+    }
+
+    .workflow-card h4::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 6px var(--cyan); }
+
+    .workflow-step { display: flex; align-items: center; gap: 12px; padding: 8px 0; font-size: 13px; color: var(--text-mid); border-bottom: 1px solid rgba(0,229,255,0.04); }
+    .workflow-step:last-child { border-bottom: none; }
+
+    .step-num {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 22px; height: 22px; background: var(--cyan-glow); border: 1px solid rgba(0,229,255,0.25);
+      border-radius: 50%; font-family: var(--font-mono); font-size: 10px; color: var(--cyan); flex-shrink: 0;
+    }
+
+    /* ── TOAST ─── */
+    .toast {
+      position: fixed; bottom: 28px; right: 28px; z-index: 999;
+      background: var(--bg-panel); border: 1px solid var(--border-mid); border-left: 3px solid var(--cyan);
+      border-radius: var(--r); color: var(--text-hi); padding: 14px 20px; font-size: 13px;
+      box-shadow: 0 0 40px rgba(0,229,255,0.15), 0 8px 32px rgba(0,0,0,0.5);
+      opacity: 0; transform: translateX(20px);
+      transition: all .25s cubic-bezier(.22,.68,0,1.2); pointer-events: none; max-width: 360px;
+      backdrop-filter: blur(16px);
+    }
+
+    .toast.show { opacity: 1; transform: none; }
+    .toast.error { border-left-color: var(--red-alert); }
+    .toast.success { border-left-color: var(--green-vital); }
+
+    /* ── MISC ─── */
+    .message { font-size: 13px; color: var(--red-dim); margin-top: 8px; }
+
+    .restriction-msg {
+      padding: 12px 16px; background: rgba(255,23,68,0.07);
+      border: 1px solid rgba(255,23,68,0.2); border-left: 3px solid var(--red-alert);
+      border-radius: var(--r); color: var(--red-dim); font-size: 13px; margin-bottom: 16px;
+    }
+
+    .vital-divider {
+      display: flex; align-items: center; gap: 16px;
+      margin: 8px 0 20px; font-family: var(--font-mono); font-size: 11px;
+      color: var(--text-lo); letter-spacing: .1em;
+    }
+    .vital-divider::before, .vital-divider::after { content: ''; flex: 1; height: 1px; }
+    .vital-divider::before { background: linear-gradient(90deg, transparent, var(--border)); }
+    .vital-divider::after  { background: linear-gradient(90deg, var(--border), transparent); }
+
+    #analytics-tbody td:nth-child(4), #analytics-tbody td:nth-child(5) {
+      font-family: var(--font-mono); font-size: 13px; color: var(--cyan);
+    }
+
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: var(--bg-deep); }
+    ::-webkit-scrollbar-thumb { background: rgba(0,229,255,0.2); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(0,229,255,0.35); }
+
+    @media (max-width: 860px) {
+      .login-wrap { grid-template-columns: 1fr; max-width: 480px; }
+      .login-brand { display: none; }
+      .page { padding: 24px 16px; }
+      .cards { grid-template-columns: 1fr 1fr; }
+      h2 { font-size: 24px; }
+    }
+
+    @media (max-width: 480px) {
+      .cards { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <header class="header" id="header" style="display: none;">
+    <a href="#/" class="brand" style="text-decoration:none;">
+      <div class="brand-pulse"></div>
+      <div>
+        <div class="brand-text">MedFlow</div>
+        <div class="brand-sub">Workflow System</div>
+      </div>
+    </a>
+    <nav class="nav">
+      <a href="#/" data-page="dashboard">Dashboard</a>
+      <a href="#/patients" data-page="patients">Patients</a>
+      <a href="#/requests" data-page="requests">Requests</a>
+      <a href="#/tasks" data-page="tasks">My Tasks</a>
+      <a href="#/workflows" data-page="workflows">Workflows</a>
+      <a href="#/analytics" data-page="analytics" id="nav-analytics" style="display: none;">Analytics</a>
+    </nav>
+    <div class="user">
+      <span id="user-email"></span>
+      <span class="role-badge" id="user-role"></span>
+      <span class="dept-badge" id="user-dept" style="display: none;"></span>
+      <button type="button" class="btn btn-ghost btn-sm" id="logout-btn">Logout</button>
+    </div>
+  </header>
+
+  <main class="main" id="main">
+
+    <!-- LOGIN -->
+    <section id="page-login" class="page">
+      <div class="login-wrap">
+        <div class="login-brand">
+          <div class="login-brand-title">
+            <div class="big-plus">+</div>
+            <h1>Inter-Dept<br>Workflow</h1>
+            <p>// Medical Operations Platform</p>
+          </div>
+          <div class="ecg-line">
+            <svg viewBox="0 0 800 60" preserveAspectRatio="none" fill="none">
+              <polyline points="0,30 80,30 100,10 120,50 140,30 180,30 200,5 215,55 230,30 310,30 330,15 345,45 360,30 440,30 460,8 475,52 490,30 570,30 590,12 605,48 620,30 700,30 720,10 740,50 760,30 800,30" stroke="#00e5ff" stroke-width="1.5"/>
+              <polyline points="0,30 80,30 100,10 120,50 140,30 180,30 200,5 215,55 230,30 310,30 330,15 345,45 360,30 440,30 460,8 475,52 490,30 570,30 590,12 605,48 620,30 700,30 720,10 740,50 760,30 800,30" stroke="#00e5ff" stroke-width="1.5" transform="translate(400,0)"/>
+            </svg>
+          </div>
+          <div class="login-stats">
+            <div class="login-stat"><div class="num">9</div><div class="lbl">Departments</div></div>
+            <div class="login-stat"><div class="num">5</div><div class="lbl">Workflows</div></div>
+            <div class="login-stat"><div class="num">24/7</div><div class="lbl">Monitoring</div></div>
+          </div>
+        </div>
+        <div class="login-form-panel">
+          <div class="form-title">Access Portal</div>
+          <div class="form-sub">// Enter credentials to proceed</div>
+          <div class="tabs">
+            <button type="button" class="tab active" data-tab="login">Login</button>
+            <button type="button" class="tab" data-tab="register">Register</button>
+          </div>
+          <form id="form-login" class="form">
+            <div class="field-wrap">
+              <span class="field-icon">@</span>
+              <input type="email" name="email" placeholder="email address" required />
+            </div>
+            <div class="field-wrap">
+              <span class="field-icon">##</span>
+              <input type="password" name="password" placeholder="password" required />
+            </div>
+            <button type="submit" class="btn btn-primary">Authenticate</button>
+          </form>
+          <form id="form-register" class="form" style="display: none;">
+            <input type="text" name="name" placeholder="Full name" required />
+            <input type="email" name="email" placeholder="Email address" required />
+            <input type="password" name="password" placeholder="Password" required />
+            <select name="role" required>
+              <option value="">Select department / role</option>
+              <option value="Admin">Admin</option>
+              <option value="Doctor">Doctor</option>
+              <option value="Nurse">Nurse</option>
+              <option value="Lab Technician">Lab Technician</option>
+              <option value="Billing Officer">Billing Officer</option>
+              <option value="OPD">OPD</option>
+              <option value="Lab">Lab</option>
+              <option value="Radiology">Radiology</option>
+              <option value="Anesthesia">Anesthesia</option>
+              <option value="OT">OT</option>
+              <option value="ICU">ICU</option>
+              <option value="Billing">Billing</option>
+            </select>
+            <button type="submit" class="btn btn-primary">Create Account</button>
+          </form>
+          <p id="auth-message" class="message"></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- DASHBOARD -->
+    <section id="page-dashboard" class="page" style="display: none;">
+      <div class="page-header">
+        <h2><span class="h2-bar"></span><div>Dashboard<span class="h2-accent">// System Overview</span></div></h2>
+      </div>
+      <div class="cards">
+        <a href="#/patients" class="card"><div class="card-icon">P</div><h3>Patients</h3><p>Register and manage patient records</p><span class="card-num">01</span></a>
+        <a href="#/requests" class="card"><div class="card-icon">R</div><h3>Requests</h3><p>Create and track patient requests</p><span class="card-num">02</span></a>
+        <a href="#/tasks" class="card"><div class="card-icon">T</div><h3>My Tasks</h3><p>Tasks assigned to your department</p><span class="card-num">03</span></a>
+        <a href="#/workflows" class="card"><div class="card-icon">W</div><h3>Workflows</h3><p>View workflow definitions and SLA</p><span class="card-num">04</span></a>
+        <a href="#/analytics" class="card" id="card-analytics" style="display: none;"><div class="card-icon">A</div><h3>Analytics</h3><p>Department performance overview</p><span class="card-num">05</span></a>
+      </div>
+    </section>
+
+    <!-- PATIENTS -->
+    <section id="page-patients" class="page" style="display: none;">
+      <div class="page-header">
+        <h2><span class="h2-bar"></span><div>Patients<span class="h2-accent">// Patient Registry</span></div></h2>
+      </div>
+      <div class="toolbar">
+        <button type="button" class="btn btn-primary" id="btn-new-patient">+ New Patient</button>
+      </div>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>Patient ID</th><th>Name</th><th>Age</th><th>Gender</th><th>Contact</th></tr></thead>
+          <tbody id="patients-tbody"></tbody>
+        </table>
+      </div>
+      <div id="modal-patient" class="modal">
+        <div class="modal-content">
+          <h3>Register New Patient</h3>
+          <div class="vital-divider">// Patient Data Entry</div>
+          <form id="form-patient" class="form">
+            <input type="text" name="name" placeholder="Full name" required />
+            <input type="number" name="age" placeholder="Age" required min="1" />
+            <select name="gender"><option value="M">Male</option><option value="F">Female</option><option value="Other">Other</option></select>
+            <input type="text" name="contact" placeholder="Contact number" required />
+            <button type="submit" class="btn btn-primary">Create Patient Record</button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- REQUESTS -->
+    <section id="page-requests" class="page" style="display: none;">
+      <div class="page-header">
+        <h2><span class="h2-bar"></span><div>Requests<span class="h2-accent">// Workflow Requests</span></div></h2>
+      </div>
+      <div class="toolbar">
+        <button type="button" class="btn btn-primary" id="btn-new-request">+ New Request</button>
+      </div>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>ID</th><th>Patient ID</th><th>Type</th><th>Department</th><th>Status</th><th>Priority</th><th>Actions</th></tr></thead>
+          <tbody id="requests-tbody"></tbody>
+        </table>
+      </div>
+      <div id="modal-request" class="modal">
+        <div class="modal-content">
+          <h3>Create New Request</h3>
+          <div class="vital-divider">// Request Configuration</div>
+          <form id="form-request" class="form">
+            <label>Patient</label>
+            <select name="patient_id" id="request-patient-id" required></select>
+            <label>Request Type</label>
+            <select name="request_type">
+              <option value="LabTest">Lab Test</option>
+              <option value="Radiology">Radiology</option>
+              <option value="Surgery">Surgery</option>
+              <option value="Insurance Approval">Insurance Approval</option>
+              <option value="Discharge">Discharge</option>
+            </select>
+            <label>Priority Level</label>
+            <select name="priority">
+              <option value="Low">Low</option>
+              <option value="Normal">Normal</option>
+              <option value="High">High</option>
+              <option value="Urgent">Urgent</option>
+            </select>
+            <button type="submit" class="btn btn-primary">Submit Request</button>
+          </form>
+        </div>
+      </div>
+      <div id="request-detail" class="detail-panel" style="display: none;">
+        <h3>Request #<span id="detail-request-id"></span></h3>
+        <div id="detail-status"></div>
+        <p id="detail-restriction" class="restriction-msg" style="display: none;"></p>
+        <div id="detail-tasks"></div>
+        <div id="detail-audit"></div>
+        <button type="button" class="btn btn-primary" id="btn-complete-task" style="display: none;">Complete (My Department)</button>
+      </div>
+    </section>
+
+    <!-- TASKS -->
+    <section id="page-tasks" class="page" style="display: none;">
+      <div class="page-header">
+        <h2><span class="h2-bar"></span><div>My Tasks<span class="h2-accent">// Department Queue</span></div></h2>
+      </div>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>ID</th><th>Request ID</th><th>Department</th><th>Status</th><th>Created</th><th>Action</th></tr></thead>
+          <tbody id="tasks-tbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- WORKFLOWS -->
+    <section id="page-workflows" class="page" style="display: none;">
+      <div class="page-header">
+        <h2><span class="h2-bar"></span><div>Workflows<span class="h2-accent">// SLA &amp; Definitions</span></div></h2>
+      </div>
+      <div id="workflows-content"></div>
+    </section>
+
+    <!-- ANALYTICS -->
+    <section id="page-analytics" class="page" style="display: none;">
+      <div class="page-header">
+        <h2><span class="h2-bar"></span><div>Analytics<span class="h2-accent">// Performance Metrics</span></div></h2>
+      </div>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>Department</th><th>Total Tasks</th><th>Completed</th><th>Avg Time (s)</th><th>SLA Breaches</th></tr></thead>
+          <tbody id="analytics-tbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<div id="toast" class="toast"></div>
+<script src="app.js"></script>
+</body>
+</html>
